@@ -3,10 +3,12 @@
 FILE *file;
 int cbuf;
 int linenum;
+int num_attr;
+char string_attr[MAXSTRSIZE];
 
 int init_scan(char *filename){
     file = fopen(filename, "r");  // "read-only"
-    if (file == NULL) return S_ERROR;
+    if (file == NULL) return error("Cannot open input file");
 
     cbuf = fgetc(file);
     linenum = 1;
@@ -14,9 +16,12 @@ int init_scan(char *filename){
 }
 
 int scan(){
+    char buf[MAXSTRSIZE];
+    int i = 0;
 
-    while (cbuf != EOF){
         cbuf = fgetc(file);
+
+        if (cbuf == EOF) return S_ERROR;
 
         switch (cbuf){
             /* separator */
@@ -29,12 +34,12 @@ int scan(){
                 break;
             /* comment */
             case '{':
-                while (cbuf != EOF){\
+                while (cbuf != EOF){
                     cbuf = fgetc(file);
                     if (cbuf == '}') break;
                     if (cbuf == '\n' || cbuf == '\r') check_lineBreak();
                 }
-                break;
+                return error("Comment is not closed");
             case '/':
                 cbuf = fgetc(file);
                 if (cbuf == '*'){
@@ -46,6 +51,7 @@ int scan(){
                         }
                         if (cbuf == '\n' || cbuf == '\r') check_lineBreak();
                     }
+                    break;
                 } else {
                     ungetc(cbuf, file);
                     return TDIV;
@@ -95,44 +101,57 @@ int scan(){
                 return TGR;
             /* string */
             case '\'' :
-                cbuf = fgetc(file);
-                if (cbuf == EOF) return S_ERROR;
-                if (cbuf == '\n' || cbuf == '\r') return S_ERROR;
-                if (cbuf == '\'') {
+                i = 0;
+
+                while (1){
+                    if (cbuf == EOF || cbuf == '\n' || cbuf == '\r') return error("String is not closed");
+                
                     cbuf = fgetc(file);
-                    if (cbuf == EOF) return S_ERROR;
-                    if (cbuf == '\n' || cbuf == '\r') return S_ERROR;
-                    if (cbuf != '\'') return S_ERROR;
+                    buf[i++] = cbuf;
+                    if (cbuf == '\''){
+                        cbuf = fgetc(file);
+                        if (cbuf != '\'') {
+                            buf[i] = '\0';
+                            strcpy(string_attr, buf);
+                            break;
+                        }
+                        ungetc(cbuf, file);
+                    }
                 }
-                cbuf = fgetc(file);
-                if (cbuf == EOF) return S_ERROR;
-                if (cbuf == '\n'|| cbuf == '\r') return S_ERROR;
-                if (cbuf != '\'') return S_ERROR;
+
+                buf[i] = '\0';
+                strcpy(string_attr, buf);
 
                 return TSTRING;
             /* unsigned integer */
             case '0': case '1': case '2': case '3': case '4':
             case '5': case '6': case '7': case '8': case '9':
-                // if (cbuf == '\''){
-                //     cbuf = fgetc(file);
-                //     if (isdigit(cbuf)) return S_ERROR;
-                //     ungetc(cbuf, file);
-                // }
+                i = 0;
+                num_attr = 0;
+                buf[i++] = cbuf;
                 while (isdigit(cbuf = fgetc(file))){
-                    ;
+                    buf[i++] = cbuf;
+                    num_attr = 10 * num_attr + (cbuf - '0');
+
+                    if(num_attr > MAXINT){
+                        return error("Number is too large");
+                    }
                 }
+                buf[i] = '\0';
+                strcpy(string_attr, buf);
                 ungetc(cbuf, file);
                 return TNUMBER;
             /* keyword or name */
             default:
-                if (isalpha(cbuf) || cbuf == '_'){
-                    char buf[256];
+                if (isalpha(cbuf)){
+                    char buf[MAXSTRSIZE];
                     int i = 0;
                     buf[i++] = cbuf;
-                    while (isalnum(cbuf = fgetc(file)) || cbuf == '_'){
+                    while (isalnum(cbuf = fgetc(file)) || isalpha(cbuf)){
                         buf[i++] = cbuf;
                     }
                     buf[i] = '\0';
+                    strcpy(string_attr, buf);
                     ungetc(cbuf, file);
 
                     for (i = 0; i < KEYWORDSIZE; i++){
@@ -144,12 +163,11 @@ int scan(){
                     return TNAME;
 
                 } else {
-                    return S_ERROR;
+                    return error("Illegal character");
                 }
         }
-    }
 
-    return S_ERROR;
+    return 0;
 }
 
 int get_linenum(){
@@ -179,4 +197,3 @@ void check_lineBreak(){
                 linenum++;
     }
 }
-
