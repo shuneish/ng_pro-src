@@ -11,7 +11,8 @@ int init_scan(char *filename){
     if (file == NULL) return error("Cannot open input file");
 
     cbuf = fgetc(file);
-    linenum = 1;
+    ungetc(cbuf, file);
+    linenum = 0;
     return 0;
 }
 
@@ -156,14 +157,22 @@ void end_scan() {
     fclose(file);
 }
 
-void check_lineBreak() {
-    if (cbuf == '\n') {
+void check_lineBreak(){
+    if (cbuf == '\n'){
+       cbuf = fgetc(file);
+                if (cbuf == '\r'){
+                    /* \n\r */
+                } else {
+                    ungetc(cbuf, file);
+                }
+                linenum++;
+    } else if (cbuf == '\r'){
         cbuf = fgetc(file);
-        if (cbuf != '\r') ungetc(cbuf, file);
-        linenum++;
-    } else if (cbuf == '\r') {
-        cbuf = fgetc(file);
-        if (cbuf != '\n') ungetc(cbuf, file);
-        linenum++;
+                if (cbuf == '\n'){
+                    /* \r\n */
+                } else {
+                    ungetc(cbuf, file);
+                }
+                linenum++;
     }
 }
