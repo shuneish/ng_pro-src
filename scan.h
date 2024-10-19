@@ -6,7 +6,11 @@
 #include <stdio.h>
 #include <string.h>
 
+// necessary for isdigit() and isalpha()
+#include <ctype.h>
+
 #define MAXSTRSIZE 1024
+#define MAXINT 32767
 
 /* Token */
 #define	TNAME		1	/* Name : Alphabet { Alphabet | Digit } */
@@ -76,6 +80,9 @@ extern int init_scan(char *filename);
 extern int scan(void);
 extern int get_linenum(void);
 extern void end_scan(void);
+
+extern void check_lineBreak(void);
+extern int check_string(void);
 
 extern int num_attr;
 extern char string_attr[MAXSTRSIZE];

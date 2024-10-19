@@ -1,32 +1,35 @@
-# コンパイラとコンパイルオプションの定義
-CC = gcc
-CFLAGS = -Wall -Werror -g
+# Compiler
+CC = gcc  # Use GCC as the compiler
 
-# ターゲット実行ファイルの名前
-TARGET = tc
+# Compiler options
+CFLAGS = -Wall -g  # Enable all warnings and include debug information
 
-# ソースファイルのリスト
-SRCS = main.c scan.c id-list.c
+# Source files
+SRC = scan.c id-list.c main.c  # List of source files
 
-# オブジェクトファイルのリスト（ソースファイルの拡張子を .o に変更）
-OBJS = $(SRCS:.c=.o)
+# Header files (dependencies)
+HEADERS = scan.h  # List of header files that object files depend on
 
-# デフォルトのターゲット（makeを実行したときにデフォルトで呼ばれる）
+# Output executable name
+TARGET = tc  # The name of the final executable
+
+# Object files (replace .c extensions with .o)
+OBJ = $(SRC:.c=.o)
+
+# Default target (run 'make' without arguments)
 all: $(TARGET)
 
-# 実行ファイルのビルドルール
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+# Rule to create the final executable from object files
+$(TARGET): $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^  # $@ is the target (tc), $^ is all dependencies (object files)
 
-# 個々のソースファイルをオブジェクトファイルにコンパイルするルール
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+# Rule to create .o files from .c files
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $@  # $< is the first prerequisite (source file), $@ is the target (object file)
 
-# クリーンアップルール（中間ファイルを削除する）
+# Clean up object files and executable
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJ) $(TARGET)
 
-# ファイルの依存関係（必要に応じて手動で追加）
-main.o: scan.h
-scan.o: scan.h
-id-list.o: scan.h
+# Rebuild the project (clean and then build everything again)
+rebuild: clean all
