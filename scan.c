@@ -39,7 +39,7 @@ int scan(){
                 if (cbuf == '}') break;
                 if (cbuf == '\n' || cbuf == '\r') check_lineBreak();
             }
-            if (cbuf == EOF) return error("Comment is not closed");
+            if (cbuf == EOF) return S_ERROR;
             break;
         case '/':
             cbuf = fgetc(file);
@@ -51,10 +51,9 @@ int scan(){
                     }
                     if (cbuf == '\n' || cbuf == '\r') check_lineBreak();
                 }
-                if (cbuf == EOF) return error("Comment is not closed");
+                if (cbuf == EOF) return S_ERROR;
             } else {
-                ungetc(cbuf, file);
-                return TDIV;
+                return S_ERROR;
             }
             break;
 
@@ -112,12 +111,13 @@ int scan(){
         case '5': case '6': case '7': case '8': case '9':
             i = 0;
             num_attr = 0;
-            buf[i++] = cbuf;
-            while (isdigit(cbuf = fgetc(file))) {
+    
+            do{
                 buf[i++] = cbuf;
                 num_attr = 10 * num_attr + (cbuf - '0');
-                if (num_attr > MAXINT) return error("Number is too large");
-            }
+                if (num_attr > MAXINT) return S_ERROR;
+            }while (isdigit(cbuf = fgetc(file)));
+
             buf[i] = '\0';
             strcpy(string_attr, buf);
             ungetc(cbuf, file);
@@ -142,7 +142,8 @@ int scan(){
                 }
                 return TNAME;
             } else {
-                return error("Illegal character");
+                // printf("cbuf");
+                return S_ERROR;
             }
     }
 
